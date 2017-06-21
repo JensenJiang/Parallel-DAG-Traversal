@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <queue>
-#include "buildDag.cpp"
+#include "buildDag.h"
 #include "config.h"
 #define MINCOST -1
 using namespace std;
@@ -154,6 +154,13 @@ int count_fa() {    // return max
     return max_fa;
 }
 
+int count_fa_max() {
+    int max_fa = 0;
+    for(int i = 1;i <= global_graph->nodes_size;i++)
+        if(global_graph->nodes[i]->fa_num > max_fa) max_fa = global_graph->nodes[i]->fa_num;
+    return max_fa;
+}
+
 void Node_sort_all(Node *node, LoserTree *lt) {
     // parallel?
     for(int i = 0;i < global_graph->I_size;i++) {
@@ -162,7 +169,6 @@ void Node_sort_all(Node *node, LoserTree *lt) {
         for(Edge *e = node->rfirst;e != NULL;e = e->next) {
             lt->set_pre(pre_size, e->to->top[i], e->to->top_len[i]);
             pre_size++;
-            // if(node->nid == 4) printf("%d\n", e->to->nid);
         }
         lt->set_pre_num(pre_size);
         lt->sort_all();
@@ -204,7 +210,7 @@ void solve() {
     int ans_size;
 
     /* Init */
-    lt = new LoserTree(count_fa());
+    lt = new LoserTree(count_fa_max());
     // test_fa_num();
     for(int i = 0;i < global_graph->I_size;i++) {
         for(int j = 0;j < global_graph->I_size;j++) {
@@ -221,6 +227,7 @@ void solve() {
     }
 
     /* Compute */
+    int temp_cnt = 0;
     while(!iter_queue.empty()) {
         Node *cur = iter_queue.front();
         iter_queue.pop();
@@ -279,8 +286,9 @@ void test_loser_tree() {
     for(int i = 0;i < size;i++) printf("%d\n", cur[i]);
 }
 
-int main() {
+int main(int argc, char **argv) {
     global_graph = new Graph();
-    buildDAG("test.dat", global_graph);
+    buildDAG2(argv[1], global_graph);
+    // printDAG(global_graph);
     solve();
 }

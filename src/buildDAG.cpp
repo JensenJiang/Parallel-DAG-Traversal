@@ -135,7 +135,7 @@ void buildDAG2(const char *filename, Graph *graph) {
 			graph->pair_cost[in] = new int[O_size];
 		int tmp_I = 0, tmp_M = 0, tmp_O = 0;
 		for(int v = 1; v <= V; ++v) {
-			printf("I_size:%d\n", I_size);
+			// printf("I_size:%d\n", I_size);
 			graph->nodes[v]->top = new int *[I_size];
 			for(int in = 0; in < I_size; ++in)
 				graph->nodes[v]->top[in] = new int[11];		

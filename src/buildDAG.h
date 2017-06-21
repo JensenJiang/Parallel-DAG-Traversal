@@ -7,6 +7,7 @@ void dataComplete(const char *filename);
 
 void buildDAG2(const char *filename, Graph *graph);
 void buildDAG (const char *filename, Graph *graph);
+void printDAG(Graph *graph);
 
 int tmain(int argc, char **argv);
 

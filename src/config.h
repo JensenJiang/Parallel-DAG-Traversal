@@ -15,6 +15,7 @@ public:
 
     Node() {
         this->fa_num = 0;
+        this->first = this->rfirst = NULL;
     }
 };
 

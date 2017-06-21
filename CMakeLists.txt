@@ -10,6 +10,8 @@ if(OPENMP_FOUND)
 endif()
 
 
-set(SOURCE_FILES src/serial_main.cpp src/config.h)
+set(SOURCE_FILES src/serial_main.cpp src/config.h src/buildDAG.cpp)
 
 add_executable(Parallel_DAG_Traversal ${SOURCE_FILES})
+add_executable(completor src/competor.cpp src/buildDAG.h src/buildDAG.cpp)
+add_executable(graph_ge tools/graph_ge.c)
