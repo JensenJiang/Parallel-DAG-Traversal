@@ -4,6 +4,8 @@
 
 #ifndef PARALLEL_DAG_TRAVERSAL_CONFIG_H
 #define PARALLEL_DAG_TRAVERSAL_CONFIG_H
+class Edge;
+
 class Node {
 public:
     int cost, fa_num, nid;

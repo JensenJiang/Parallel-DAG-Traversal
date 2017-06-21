@@ -237,23 +237,22 @@ void solve() {
 
 void test_loser_tree() {
     LoserTree *tree = new LoserTree(10);
-    puts("here!");
     int cur[12];
     int size;
-    int pre1[5] = {5,4,3,2};
-    int pre2[5] = {10,8,6,4};
-    int pre3[5] = {7,4,2,1};
-    int pre4[5] = {20, 5,4,1};
+    int pre1[5] = {5};
+    int pre2[5] = {10};
+    int pre3[5] = {7};
+    int pre4[5] = {20};
 
     tree->set_cur(cur, &size);
     tree->set_pre_num(4);
-    tree->set_pre(0, pre1, 4);
-    tree->set_pre(1, pre2, 4);
-    tree->set_pre(2, pre3, 4);
-    tree->set_pre(3, pre4, 4);
+    tree->set_pre(0, pre1, 1);
+    tree->set_pre(1, pre2, 1);
+    tree->set_pre(2, pre3, 1);
+    tree->set_pre(3, pre4, 1);
 
     tree->sort_all();
-    for(int i = 0;i < 10;i++) printf("%d\n", cur[i]);
+    for(int i = 0;i < size;i++) printf("%d\n", cur[i]);
 }
 
 int main() {
