@@ -42,7 +42,6 @@ void buildDAG(const char *filename, Graph *graph) {
 			int cost = -1, edges = -1;
 			in >> cost >> edges;
 			graph->nodes[v]->cost = cost;
-			Edge **cur = &graph->nodes[v]->first;
 			//printf("cost:%d edges:%d\n", cost, edges);	
 			for(int e = 0; e < edges; ++e) {
 				//printf("cur:%p\n", cur);
@@ -50,18 +49,15 @@ void buildDAG(const char *filename, Graph *graph) {
 				in >> to;
 				//printf("%d->%d\n", v, to);
 				//build edge
-				*cur = new Edge;
-				//printf("cur:%p\n", cur);
-				(*cur)->to = graph->nodes[to];
-				cur = &((*cur)->next);
-				//printf("cur:%p\n", cur);
-				//printf("%p\n", graph->nodes[v]->first);
+				Edge *cur = new Edge;
+				cur->to = graph->nodes[to];
+				cur->next = graph->nodes[v]->first;
+				graph->nodes[v]->first = cur;
 				//build reverse edge
-				Edge *&rcur = graph->nodes[to]->rfirst;
-				while(rcur != NULL)
-					rcur = rcur->next;
-				rcur = new Edge;
+				Edge *rcur = new Edge;
 				rcur->to = graph->nodes[v];
+				rcur->next = graph->nodes[to]->rfirst;
+				graph->nodes[to]->rfirst = rcur;
 			}	
 		}
 		//build pair_cost
@@ -74,7 +70,9 @@ void buildDAG(const char *filename, Graph *graph) {
 		} 
 		in.close();
 	}
-	
+	else  {
+		printf("Open file %s error!\n", filename);
+	}	
 	return;
 }
 
@@ -101,7 +99,7 @@ void printDAG(Graph *graph) {
 	return;
 }
 
-int test_buildDAG(int argc, char **argv) {
+int main(int argc, char **argv) {
 	if(argc < 2) {
 		printf("usage: build <file>\n");
 	}
