@@ -1,6 +1,7 @@
 #ifndef SRC_BUILDDAG_H_
 #define SRC_BUILDDAG_H_
 
+#include "config.h"
 int rand_int(int range = 128);
 void dataComplete(const char *filename);
 
