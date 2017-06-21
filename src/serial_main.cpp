@@ -1,35 +1,8 @@
 #include <cstdio>
 #include <queue>
-#include <algorithm>
+#include "config.h"
 #define MINCOST -1
 using namespace std;
-
-class Node {
-public:
-    int cost, fa_num, nid;
-    int **top;
-    int *top_len;
-    Edge *first, *rfirst;
-
-    Node() {
-        this->fa_num = 0;
-    }
-};
-
-class Edge {
-public:
-    Node *to;
-    Edge *next;
-};
-
-class Graph {
-public:
-    Node *nodes[];
-    Node *I[], *M[], *O[];
-    // Edge *first[], *rfirst[];
-    int nodes_size, I_size, O_size;
-    int **pair_cost;
-};
 
 Graph *global_graph;
 
@@ -37,10 +10,10 @@ class LoserTree {
 private:
     int *cur;
     int *cur_size;
-    int *pre[];
+    int **pre;
     int *pre_size;
     int pre_num, tot;
-    int tree[], cur_index[], win[];
+    int *tree, *cur_index, *win;
 public:
     LoserTree(int _max_size) {
         this->pre = new int*[_max_size];
@@ -48,12 +21,12 @@ public:
         this->pre_size = new int[_max_size];
         this->tree = new int[_max_size * 2];
         this->win = new int[_max_size * 2];
-        *(this->cur_size) = 0;
     }
 
     void set_cur(int* _cur, int* _cur_size) {
         this->cur = _cur;
         this->cur_size = _cur_size;
+        *this->cur_size = 0;
     }
 
     void set_pre_num(const int& _num) {
@@ -191,9 +164,24 @@ void Node_sort_all(Node *node, LoserTree *lt) {
     }
 }
 
+void add_pair_cost(int oid) {
+    Node *cur = global_graph->O[oid];
+    for(int i = 0;i < global_graph->I_size;i++) {
+        for(int j = 0;j < cur->top_len[i];j++) cur->top[i][j] += global_graph->pair_cost[i][oid];
+    }
+}
+
+void add_cost(Node *cur) {
+    for(int i = 0;i < global_graph->I_size;i++) {
+        for(int j = 0;j < cur->top_len[i];j++) cur->top[i][j] += cur->cost;
+    }
+}
+
 void solve() {
     queue<Node*> iter_queue;
     LoserTree *lt;
+    int ans[11];
+    int ans_size;
 
     /* Init */
     lt = new LoserTree(count_fa());
@@ -217,6 +205,7 @@ void solve() {
         iter_queue.pop();
 
         Node_sort_all(cur, lt);
+        add_cost(cur);
 
         for(Edge *e = cur->first;e != NULL;e = e->next) {
             e->to->fa_num--;
@@ -225,10 +214,48 @@ void solve() {
     }
 
     /* Finally */
-    for()
+    for(int i = 0;i < global_graph->O_size;i++) {
+        int pre_size = 0;
+        Node* cur = global_graph->O[i];
+        add_pair_cost(i);
+        lt->set_cur(ans, &ans_size);
+        for(int j = 0;j < global_graph->I_size;j++) {
+            lt->set_pre(pre_size, cur->top[j], cur->top_len[j]);
+            pre_size++;
+        }
+        lt->set_pre_num(pre_size);
+        lt->sort_all();
+
+        /* Print Ans */
+        printf("Sink Node %d: ", i);
+        for(int j = 0;j < ans_size;j++) {
+            printf("%d ", ans[j]);
+        }
+        puts("");
+    }
 }
 
-int main()
-{
-    return 0;
+void test_loser_tree() {
+    LoserTree *tree = new LoserTree(10);
+    puts("here!");
+    int cur[12];
+    int size;
+    int pre1[5] = {5,4,3,2};
+    int pre2[5] = {10,8,6,4};
+    int pre3[5] = {7,4,2,1};
+    int pre4[5] = {20, 5,4,1};
+
+    tree->set_cur(cur, &size);
+    tree->set_pre_num(4);
+    tree->set_pre(0, pre1, 4);
+    tree->set_pre(1, pre2, 4);
+    tree->set_pre(2, pre3, 4);
+    tree->set_pre(3, pre4, 4);
+
+    tree->sort_all();
+    for(int i = 0;i < 10;i++) printf("%d\n", cur[i]);
+}
+
+int main() {
+    test_loser_tree();
 }
