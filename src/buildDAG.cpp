@@ -99,7 +99,7 @@ void printDAG(Graph *graph) {
 	return;
 }
 
-int main(int argc, char **argv) {
+int test_buildDAG(int argc, char **argv) {
 	if(argc < 2) {
 		printf("usage: build <file>\n");
 	}
