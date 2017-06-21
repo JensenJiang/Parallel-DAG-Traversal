@@ -10,6 +10,6 @@ if(OPENMP_FOUND)
 endif()
 
 
-set(SOURCE_FILES src/serial_main.cpp)
+set(SOURCE_FILES src/serial_main.cpp src/config.h)
 
 add_executable(Parallel_DAG_Traversal ${SOURCE_FILES})
