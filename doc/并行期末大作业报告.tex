@@ -1,0 +1,206 @@
+\documentclass{article}
+
+\usepackage{ctex}
+\usepackage{url}
+\usepackage{booktabs}
+
+\title{并行期末大作业报告}
+\author{江振升 1400012781\\
+		何卓论 1300012885}
+
+\begin{document}
+	\pagenumbering{gobble}
+	\maketitle
+	\newpage
+	
+	\pagenumbering{arabic}
+	\section{项目概述}
+	\subsection{选题}
+	本组所选的题目为问题一"Parallel DAG Traversal"。
+	
+	\subsection{问题描述}
+	\paragraph{Parallel DAG Traversal}
+	给定一个有向无环图(DAG)$G=(V, E)$，其中$V=I\cup M\cup O$。$M$是内部点集，每个内部点$m\in M$都有一个权重；$I$是源点集，$O$是汇点集，每一对源点和汇点之间都有一个权重。
+	
+	对于每一个汇点$o\in O$，找出所有从任意源点$i\in I$出发的到达$o$的路径中权重前十大的路径。一个路径的权重定义为源点和汇点的对权重加上经过的内部点的权重之和。
+	
+	\section{算法实现}
+	\subsection{串行部分算法}
+	\subsubsection{总体思路}
+	首先，如果不考虑源点和汇点的对权重，对于内部点$m\in M$以及汇点$o\in O$考虑原问题，可以定义$Top(m)$为由任意源点出发到达$m$的路径中权重前十大的路径的权重。那么则有：
+	$$Top(m)=max10\{\bigcup\limits_{t\in par(m)}Top(t)+w(m)\}$$
+	其中，$max10$指取集合中的前10大元素；$par(m)$指节点$m$在DAG中的父节点的集合；对于源点$i\in I$而言，$Top(i)=\{0\}$；对于源点与汇点而言，其单点权重都为0。
+	
+	如果需要考虑源点和汇点的对权重，那么就要对上式进行修改：
+	$$Top(m, i)=max10\{\bigcup\limits_{t\in par(m)}Top(t, i)+w(m)\}$$
+	其中，$Top(m, i)$表示从源点$i$出发，到达$m$的路径中前十大的路径的权重；对于源点$i\in I$而言，$Top(i, i)={0}, Top(i, j)=\emptyset (i\neq j)$。
+	
+	那么，原问题的结果，即$Top(o)$，就可以表示为：
+	$$Top(o)=max10\{\bigcup\limits_{i\in I}Top(o,i)\}$$
+	
+	观察上述各式，主要要解决的问题有：
+	\begin{enumerate}
+		\item 如何递推的计算$Top(m,i)$，即以什么顺序遍历DAG；
+		\item 如何计算$max10$，其中它的参数来自若干个长度最多为10的降序排列的数组。
+	\end{enumerate}
+	
+	\subsubsection{递推计算}
+	观察$Top(m,i)$的计算式我们可以知道，它的依赖关系是它的父节点，即在计算$Top(m,i)$之前，$\forall j\in par(i), Top(j,i)$都要已经计算出来。因此，我们可以通过拓扑排序来确定正确的递推计算顺序。
+	
+	\subsubsection{$max10$的计算}
+	分析$max10$的参数的特点：
+	\begin{itemize}
+		\item 来自若干个数组；
+		\item 这些数组是降序排列的。
+	\end{itemize}
+	可见，这其实是一个多路归并的问题，而且只要求归并后的前10个结果，可以通过败者树来实现。
+	
+	\subsection{并行部分算法}
+	\subsubsection{$Top(m,i)$的并行性}
+	根据之前的分析，$Top(m,i)$的计算只依赖于它的父节点，即对于$\forall i,j,i\neq j$，则有$Top(\cdot,i)$与$Top(\cdot,j)$的计算是相互独立的。因此可以对于每一个源点进行并行计算。
+	
+	\subsubsection{等深度的并行性}
+	对于$v\in V$，定义$d(v)=\max\limits_{t\in par(v)}d(t)+1$，且对于$i\in I$，$d(i)=0$，称$d(v)$为$v$的深度。在同一个源点的计算中，$Top(m,i)$的计算只依赖于它的父节点，即等深度的节点的计算是相互独立的。因此可以先通过拓扑排序初始化确定每一个节点的深度，然后再根据深度进行并行计算。
+	
+	\section{代码实现与数据构造}
+	\subsection{串行部分的代码实现}
+	\subsubsection{图的数据结构}
+	使用邻接表实现，而且对于每条边都要存正向边和反向边。正向边是用于图的遍历，反向边是用于递推计算。
+	
+	关于图的数据结构在\emph{config.h}中，其中\emph{Node}是节点的类，\emph{Edge}是边的类，\emph{Graph}是图的类。
+	
+	\subsubsection{败者树}
+	根据问题的特点，败者树实现为：
+	\begin{itemize}
+		\item 初始化时接受一个最大的路数，便于在不同计算中复用；
+		\item 排序时只取最多前10大的结果。
+	\end{itemize}
+	
+	关于败者树的数据结构在\emph{LoserTree.cpp}以及\emph{LoserTree.h}中。
+	
+	\subsubsection{图的遍历}
+	在图的初始化时同时计算每个节点的入边数\emph{fa\_num}，在运行时维护一个队列，一开始在队列中的是源点，每处理完一个节点，检查一次它的子节点，并将\emph{fa\_num}减1。如果减1后为0，则将该节点入队。
+	
+	\subsection{并行部分的代码实现}
+	根据之前的分析，我们只要在每个节点计算$Top(m,i)$是对于每个$i$进行并行化即可。
+	
+	\subsection{数据构造}
+	\subsubsection{无权DAG的生成}
+	我们采用了现成的开源代码进行生成。该生成器\footnote{\url{http://condor.depaul.edu/rjohnson/source/graph_ge.c}}是由DePaul University的Richard Johnsonbaugh与Martin Kalin所编写的，可以根据节点数与边数生成随机的DAG。但由于图的数据结构是邻接矩阵，因此无法生成规模太大的图。
+	
+	\subsubsection{点权重与对权重的生成}
+	在生成了DAG后，我们自己编写了一个权重生成器，在\emph{competor.cpp}中，用于为已有的DAG随机生成范围在$0\sim 127$的点权重与对权重。
+	
+	\section{项目结构与编译向导}
+	\subsection{项目结构}
+	\begin{itemize}
+		\item \emph{CMakeLists.txt}: cmake文件；
+		\item \emph{data}: 数据文件目录
+		\begin{itemize}
+			\item \emph{\_graph\_10000\_5000000.dat}: 节点数为10000，边数为5000000的图；
+			\item \emph{\_graph\_40000\_10000000.dat}: 节点数为40000，边数为10000000的图。该图的串行版本运行时间超过1分钟；
+			\item \emph{tiny\_sample1.dat}: 与所给的样例一致的图，用于检测正确性。
+		\end{itemize}
+		\item \emph{doc}: 文档文件目录，包括本文件；
+		\item \emph{tools}: 工具目录
+		\begin{itemize}
+			\item \emph{graph\_ge.c}: 图随机生成器；
+			\item \emph{stat.py}: 测试统计代码，请使用python3运行。
+		\end{itemize}
+		\item \emph{src}:
+		\begin{itemize}
+			\item \emph{buildDAG.cpp}, \emph{buildDAG.h}: 读入数据相关；
+			\item \emph{competor.cpp}: 生成点权重与对权重；
+			\item \emph{config.h}: 图的数据结构；
+			\item \emph{LoserTree.cpp}, \emph{LoserTree.h}: 败者树实现相关；
+			\item \emph{parallem\_main.cpp}: 并行实现的主函数；
+			\item \emph{parameters.h}: 一些宏定义；
+			\item \emph{serial\_main.cpp}: 串行实现的主函数。
+		\end{itemize}
+	\end{itemize}
+	
+	\subsection{数据位置}
+	由于数据过大，我将生成好的数据放在了课程服务器上，位置是：
+	
+	/home/parallel\_class/s1400012781/project/data
+	
+	\subsection{如何编译}
+	本项目通过cmake组织的，可以按照以下步骤进行编译：
+	\begin{enumerate}
+		\item 在项目根目录建立\emph{build}目录，并进入\emph{build}目录；
+		\item \emph{cmake ..}
+		\item \emph{make}
+	\end{enumerate}
+	
+	另外，如果默认的编译器不支持openmp，假设另外一个编译器为clang与clang++，请将\emph{cmake ..}改为\emph{CC=clang CXX=clang++ cmake ..}。
+	
+	\subsection{如何运行}
+	\textbf{串行版本：} ./serial <data\_path>
+	
+	\textbf{并行版本：} ./parallel <data\_path> <threads\_num>
+	
+	\section{实验结果}
+	\subsection{实验方法}
+	\textbf{设备硬件环境：} \textbf{CPU:} Intel Core i7-6820HQ @ 2.70GHz, \textbf{RAM:} 16GB
+	
+	\textbf{操作系统：} \textbf{OS:} 64bit Mac OS X 10.12.5 16F73, \textbf{Kernel:} x86\_64 Darwin 16.6.0
+	
+	\textbf{编译器版本：} g++-6 (Homebrew GCC 6.3.0\_1 --without-multilib) 6.3.0
+	
+	\textbf{测试数据：} \emph{\_graph\_40000\_10000000.dat}，包含40000个节点与10000000条边
+	
+	\textbf{测试方法：} 对于每个指标运行三次，取平均值。测量\emph{I/O时间}以及\emph{计算时间}。时间测量使用OpenMP提供的\emph{omp\_get\_wtime}函数
+	\subsection{实验结果}
+	\begin{table}[]
+\centering
+\caption{实验结果}
+\begin{tabular}{ccccc}
+\toprule
+程序类型 & I/O时间 & 计算时间  & speedup  & efficiency \\ \midrule
+串行   & 3.23s & 63.2s & /        & /          \\
+1线程  & 2.94s & 85.5s & 75.09\%  & 75.09\%    \\
+2线程  & 3.02s & 45.4s & 137.19\% & 68.59\%    \\
+3线程  & 2.92s & 31.6s & 192.36\% & 64.12\%    \\
+4线程  & 2.94s & 25.4s & 234.08\% & 58.52\%    \\
+5线程  & 3.13s & 23.9s & 245.90\% & 49.18\%    \\
+6线程  & 2.96s & 22.1s & 264.74\% & 44.12\%    \\
+7线程  & 3.01s & 21.4s & 271.70\% & 38.81\%    \\
+8线程  & 2.99s & 22.2s & 264.06\% & 33.01\%   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+数据见表1。其中，\emph{speedup}以及\emph{efficiency}都是用总时间计算的。
+
+	
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
